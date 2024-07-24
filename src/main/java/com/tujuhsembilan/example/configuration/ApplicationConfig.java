@@ -79,6 +79,8 @@ public class ApplicationConfig {
         .authorizeHttpRequests(req -> req
             .requestMatchers(AntPathRequestMatcher.antMatcher("/auth/jwks.json")).permitAll()
             .requestMatchers(AntPathRequestMatcher.antMatcher("/auth/login")).permitAll()
+            .requestMatchers(AntPathRequestMatcher.antMatcher("/auth/check-token")).permitAll()
+            .requestMatchers(AntPathRequestMatcher.antMatcher("/auth/logout")).permitAll()
             .requestMatchers(AntPathRequestMatcher.antMatcher("/admin/**")).hasAuthority("ADMIN")
             .anyRequest().authenticated())
         // Authorization (DEFAULT IN MEM)
