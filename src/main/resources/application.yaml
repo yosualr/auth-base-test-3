@@ -37,11 +37,14 @@ logging:
 #-----------------------------------
 --- # Miscellanous
 #-----------------------------------
-
 spring:
   output:
     ansi:
       enabled: always # Just console color, I'm lovin' it!
+
+  main:
+    allow-circular-references: true
+
 
 # # -----------------------------------
 # --- #

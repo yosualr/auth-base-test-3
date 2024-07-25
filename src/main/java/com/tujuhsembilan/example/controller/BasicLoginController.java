@@ -57,6 +57,10 @@ public class BasicLoginController {
   //List ActiveTokens
   private final ConcurrentMap<String, String> activeTokens = new ConcurrentHashMap<>();
 
+  //List ActiveSessions
+  private final ConcurrentMap<String, String> activeSessions = new ConcurrentHashMap<>();
+
+
   
   @GetMapping("/jwks.json")
   public ResponseEntity<?> jwk() throws JsonProcessingException {
@@ -91,8 +95,15 @@ public class BasicLoginController {
                         .expiresAt(now.plus(refreshTokenValidity, ChronoUnit.MINUTES))
                         .build()));
 
+        String username = ((User) auth.getPrincipal()).getUsername();
+        if (activeSessions.containsKey(username)) {
+            String oldToken = activeSessions.remove(username);
+            activeTokens.remove(oldToken);
+        }
+
         activeTokens.put(accessToken.getTokenValue(), ((User) auth.getPrincipal()).getUsername());
         activeTokens.put(refreshToken.getTokenValue(), ((User) auth.getPrincipal()).getUsername());
+        activeSessions.put(username, accessToken.getTokenValue());
 
         return ResponseEntity.ok(Map.of(
                 "accessToken", accessToken.getTokenValue(),
@@ -184,7 +195,9 @@ public class BasicLoginController {
         }
     
         if (activeTokens.containsKey(token)) {
+            String username = activeTokens.get(token);
             activeTokens.remove(token);
+            activeSessions.remove(username);
             return ResponseEntity.ok(Map.of("status", "success", "message", "Logged out successfully"));
         } else {
             return ResponseEntity.status(401).body(Map.of(
