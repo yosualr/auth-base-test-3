@@ -2,7 +2,6 @@ package com.tujuhsembilan.example.configuration.components;
 
 import java.io.IOException;
 import java.time.Instant;
-import java.util.concurrent.ConcurrentMap;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -13,7 +12,6 @@ import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.security.oauth2.jwt.Jwt;
 import org.springframework.security.oauth2.jwt.JwtDecoder;
 import org.springframework.security.oauth2.jwt.JwtException;
-import org.springframework.security.web.authentication.preauth.PreAuthenticatedAuthenticationToken;
 import org.springframework.stereotype.Component;
 import org.springframework.web.filter.OncePerRequestFilter;
 
@@ -55,7 +53,6 @@ public class JwtTokenFilter extends OncePerRequestFilter {
                 return;
             }
 
-            // If token is valid, proceed with the request
             SecurityContextHolder.getContext().setAuthentication(
                 new UsernamePasswordAuthenticationToken(decodedToken.getSubject(), token)
             );
@@ -73,9 +70,6 @@ public class JwtTokenFilter extends OncePerRequestFilter {
         } else {
             log.info("No authentication found.");
         }
-
-
-
 
         chain.doFilter(request, response);
     }

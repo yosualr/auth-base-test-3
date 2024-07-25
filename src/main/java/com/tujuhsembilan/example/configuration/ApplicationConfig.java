@@ -6,8 +6,6 @@ import java.nio.charset.StandardCharsets;
 import java.text.ParseException;
 import java.util.Collections;
 import java.util.List;
-import java.util.concurrent.ConcurrentHashMap;
-import java.util.concurrent.ConcurrentMap;
 import java.util.stream.Collectors;
 
 import org.modelmapper.ModelMapper;
@@ -70,16 +68,6 @@ public class ApplicationConfig {
   public ModelMapper modelMapper() {
     return new ModelMapper();
   }
-
-  @Bean
-    public ConcurrentMap<String, String> activeTokens() {
-        return new ConcurrentHashMap<>();
-    }
-
-    @Bean
-    public ConcurrentMap<String, String> activeSessions() {
-        return new ConcurrentHashMap<>();
-    }
 
   // --- Security Configuration
 

@@ -14,7 +14,6 @@ import org.springframework.web.bind.annotation.RequestHeader;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
-import com.tujuhsembilan.example.controller.dto.CheckTokenRequestDTO;
 import com.tujuhsembilan.example.controller.dto.NoteDto;
 import com.tujuhsembilan.example.model.Note;
 import com.tujuhsembilan.example.repository.NoteRepo;
