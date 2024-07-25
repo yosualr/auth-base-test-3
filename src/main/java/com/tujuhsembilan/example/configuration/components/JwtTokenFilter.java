@@ -2,6 +2,7 @@ package com.tujuhsembilan.example.configuration.components;
 
 import java.io.IOException;
 import java.time.Instant;
+import java.util.concurrent.ConcurrentMap;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -16,6 +17,8 @@ import org.springframework.security.web.authentication.preauth.PreAuthenticatedA
 import org.springframework.stereotype.Component;
 import org.springframework.web.filter.OncePerRequestFilter;
 
+import com.tujuhsembilan.example.services.TokenService;
+
 import jakarta.servlet.FilterChain;
 import jakarta.servlet.ServletException;
 import jakarta.servlet.http.HttpServletRequest;
@@ -26,6 +29,8 @@ import lombok.RequiredArgsConstructor;
 @RequiredArgsConstructor(onConstructor = @__(@Autowired))
 public class JwtTokenFilter extends OncePerRequestFilter {
     private final JwtDecoder jwtDecoder;
+    private final TokenService tokenService;
+
     private static final Logger log = LoggerFactory.getLogger(JwtTokenFilter.class);
 
 
@@ -42,10 +47,11 @@ public class JwtTokenFilter extends OncePerRequestFilter {
             Jwt decodedToken = jwtDecoder.decode(token);
             Instant now = Instant.now();
             boolean isExpired = decodedToken.getExpiresAt().isBefore(now);
+            String tokenUsername = tokenService.getUsername(token);
 
-            if (isExpired) {
+            if (isExpired || tokenUsername == null || !tokenUsername.equals(decodedToken.getSubject())) {
                 response.setStatus(HttpServletResponse.SC_UNAUTHORIZED);
-                response.getWriter().write("Token has expired");
+                response.getWriter().write("Token has expired or is invalid");
                 return;
             }
 
@@ -53,6 +59,7 @@ public class JwtTokenFilter extends OncePerRequestFilter {
             SecurityContextHolder.getContext().setAuthentication(
                 new UsernamePasswordAuthenticationToken(decodedToken.getSubject(), token)
             );
+
 
         } catch (JwtException e) {
             response.setStatus(HttpServletResponse.SC_UNAUTHORIZED);

@@ -26,6 +26,7 @@ import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
+import org.springframework.web.bind.annotation.RequestHeader;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
@@ -36,6 +37,7 @@ import com.nimbusds.jose.jwk.ECKey;
 import com.tujuhsembilan.example.configuration.property.AuthProp;
 import com.tujuhsembilan.example.controller.dto.CheckTokenRequestDTO;
 import com.tujuhsembilan.example.controller.dto.CheckTokenResponseDTO;
+import com.tujuhsembilan.example.services.TokenService;
 
 import jakarta.validation.constraints.NotNull;
 import lombok.RequiredArgsConstructor;
@@ -54,12 +56,8 @@ public class BasicLoginController {
 
   private final ECKey ecJwk;
 
-  //List ActiveTokens
-  private final ConcurrentMap<String, String> activeTokens = new ConcurrentHashMap<>();
 
-  //List ActiveSessions
-  private final ConcurrentMap<String, String> activeSessions = new ConcurrentHashMap<>();
-
+  private final TokenService tokenService;
 
   
   @GetMapping("/jwks.json")
@@ -96,14 +94,15 @@ public class BasicLoginController {
                         .build()));
 
         String username = ((User) auth.getPrincipal()).getUsername();
-        if (activeSessions.containsKey(username)) {
-            String oldToken = activeSessions.remove(username);
-            activeTokens.remove(oldToken);
+        if (tokenService.getSession(username) != null) {
+            String oldToken = tokenService.getSession(username);
+            tokenService.removeToken(oldToken);
         }
 
-        activeTokens.put(accessToken.getTokenValue(), ((User) auth.getPrincipal()).getUsername());
-        activeTokens.put(refreshToken.getTokenValue(), ((User) auth.getPrincipal()).getUsername());
-        activeSessions.put(username, accessToken.getTokenValue());
+        tokenService.addToken(accessToken.getTokenValue(), username);
+        tokenService.addToken(refreshToken.getTokenValue(), username);
+        tokenService.addSession(username, accessToken.getTokenValue());
+
 
         return ResponseEntity.ok(Map.of(
                 "accessToken", accessToken.getTokenValue(),
@@ -151,8 +150,9 @@ public class BasicLoginController {
                                 .expiresAt(now.plus(3, ChronoUnit.MINUTES)) 
                                 .build())).getTokenValue();
     
-                activeTokens.put(newAccessToken, decodedToken.getSubject());
-                activeTokens.put(newRefreshToken, decodedToken.getSubject());
+                
+              tokenService.addToken(newAccessToken, decodedToken.getSubject());
+              tokenService.addToken(newRefreshToken, decodedToken.getSubject());
             }
     
             var response = new CheckTokenResponseDTO(
@@ -163,7 +163,7 @@ public class BasicLoginController {
                 decodedToken.getExpiresAt()
             );
     
-            if (!activeTokens.containsKey(token)) {
+            if (!tokenService.getUsername(token).equals(decodedToken.getSubject())) {
                 return ResponseEntity.status(401).body(Map.of(
                         "status", "invalid",
                         "message", "Token is invalid or has been revoked"
@@ -184,8 +184,8 @@ public class BasicLoginController {
 
     
     @PostMapping("/logout")
-    public ResponseEntity<?> logout(@RequestBody CheckTokenRequestDTO requestDTO) {
-        String token = requestDTO.getToken();
+    public ResponseEntity<?> logout(@RequestHeader("Authorization") String authHeader) {
+      String token = authHeader.replace("Bearer ", "");
 
         if (token == null || token.isEmpty()) {
             return ResponseEntity.badRequest().body(Map.of(
@@ -194,10 +194,10 @@ public class BasicLoginController {
             ));
         }
     
-        if (activeTokens.containsKey(token)) {
-            String username = activeTokens.get(token);
-            activeTokens.remove(token);
-            activeSessions.remove(username);
+        if (tokenService.getUsername(token) != null) {
+            String username = tokenService.getUsername(token);
+            tokenService.removeToken(token);
+            tokenService.removeSession(username);
             return ResponseEntity.ok(Map.of("status", "success", "message", "Logged out successfully"));
         } else {
             return ResponseEntity.status(401).body(Map.of(
